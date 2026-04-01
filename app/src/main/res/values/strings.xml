@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">まとめリーダー</string>
+    <string name="home_tab">ホーム</string>
+    <string name="bookmarks_tab">ブックマーク</string>
+    <string name="settings_tab">設定</string>
+    <string name="refresh">更新</string>
+    <string name="loading">読み込み中...</string>
+    <string name="error_load_failed">記事の読み込みに失敗しました</string>
+    <string name="retry">再試行</string>
+    <string name="no_articles">記事がありません</string>
+    <string name="open_in_browser">ブラウザで開く</string>
+    <string name="bookmark_add">ブックマークに追加</string>
+    <string name="bookmark_remove">ブックマークを削除</string>
+    <string name="share">共有</string>
+    <string name="all_sources">すべて</string>
+    <string name="settings_title">設定</string>
+    <string name="settings_feeds">フィード管理</string>
+    <string name="settings_add_feed">フィードを追加</string>
+    <string name="settings_feed_url_hint">フィードURL (RSS/Atom)</string>
+    <string name="settings_feed_name_hint">フィード名</string>
+    <string name="add">追加</string>
+    <string name="cancel">キャンセル</string>
+    <string name="delete">削除</string>
+    <string name="settings_theme">テーマ</string>
+    <string name="settings_font_size">文字サイズ</string>
+    <string name="settings_cache">キャッシュ</string>
+    <string name="settings_clear_cache">キャッシュをクリア</string>
+    <string name="cache_cleared">キャッシュをクリアしました</string>
+    <string name="feed_added">フィードを追加しました</string>
+    <string name="feed_deleted">フィードを削除しました</string>
+    <string name="invalid_url">無効なURLです</string>
+</resources>
