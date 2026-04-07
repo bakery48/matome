@@ -1,11 +1,16 @@
 package com.matome.reader.ui.navigation
 
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -16,7 +21,6 @@ import androidx.navigation.compose.rememberNavController
 import com.matome.reader.R
 import com.matome.reader.data.model.Article
 import com.matome.reader.ui.bookmarks.BookmarksScreen
-import com.matome.reader.ui.detail.ArticleDetailScreen
 import com.matome.reader.ui.home.HomeScreen
 import com.matome.reader.ui.settings.SettingsScreen
 
@@ -24,14 +28,15 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Bookmarks : Screen("bookmarks")
     object Settings : Screen("settings")
-    object Detail : Screen("detail")
 }
 
 @Composable
 fun MatomeNavGraph() {
     val navController = rememberNavController()
-    var currentArticle by remember { mutableStateOf<Article?>(null) }
-    var isArticleBookmarked by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
 
     val bottomNavItems = listOf(
         Triple(Screen.Home, Icons.Default.Home, R.string.home_tab),
@@ -39,32 +44,39 @@ fun MatomeNavGraph() {
         Triple(Screen.Settings, Icons.Default.Settings, R.string.settings_tab)
     )
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val showBottomBar = currentDestination?.route != Screen.Detail.route
+    fun openArticle(article: Article) {
+        val customTabsIntent = CustomTabsIntent.Builder()
+            .setDefaultColorSchemeParams(
+                CustomTabColorSchemeParams.Builder()
+                    .setToolbarColor(colorScheme.surface.toArgb())
+                    .build()
+            )
+            .setShowTitle(true)
+            .setShareState(CustomTabsIntent.SHARE_STATE_ON)
+            .build()
+        customTabsIntent.launchUrl(context, Uri.parse(article.link))
+    }
 
     Scaffold(
         bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    bottomNavItems.forEach { (screen, icon, labelRes) ->
-                        NavigationBarItem(
-                            icon = { Icon(icon, contentDescription = null) },
-                            label = { Text(stringResource(labelRes)) },
-                            selected = currentDestination?.hierarchy?.any {
-                                it.route == screen.route
-                            } == true,
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
+            NavigationBar {
+                bottomNavItems.forEach { (screen, icon, labelRes) ->
+                    NavigationBarItem(
+                        icon = { Icon(icon, contentDescription = null) },
+                        label = { Text(stringResource(labelRes)) },
+                        selected = currentDestination?.hierarchy?.any {
+                            it.route == screen.route
+                        } == true,
+                        onClick = {
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
                                 }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
-                    }
+                        }
+                    )
                 }
             }
         }
@@ -75,37 +87,13 @@ fun MatomeNavGraph() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) {
-                HomeScreen(
-                    onOpenArticle = { article ->
-                        currentArticle = article
-                        isArticleBookmarked = article.isBookmarked
-                        navController.navigate(Screen.Detail.route)
-                    }
-                )
+                HomeScreen(onOpenArticle = ::openArticle)
             }
             composable(Screen.Bookmarks.route) {
-                BookmarksScreen(
-                    onOpenArticle = { article ->
-                        currentArticle = article
-                        isArticleBookmarked = article.isBookmarked
-                        navController.navigate(Screen.Detail.route)
-                    }
-                )
+                BookmarksScreen(onOpenArticle = ::openArticle)
             }
             composable(Screen.Settings.route) {
                 SettingsScreen()
-            }
-            composable(Screen.Detail.route) {
-                currentArticle?.let { article ->
-                    ArticleDetailScreen(
-                        article = article,
-                        isBookmarked = isArticleBookmarked,
-                        onBack = { navController.popBackStack() },
-                        onToggleBookmark = {
-                            isArticleBookmarked = !isArticleBookmarked
-                        }
-                    )
-                }
             }
         }
     }
