@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.util.Log
 
 data class HomeUiState(
     val articles: List<Article> = emptyList(),
@@ -58,14 +59,23 @@ class HomeViewModel @Inject constructor(
     )
 
     init {
-        refresh()
+        // DatabaseInitializerがフィードを挿入するのを待ってからrefresh
+        viewModelScope.launch {
+            repository.getAllFeeds()
+                .filter { it.isNotEmpty() }
+                .take(1)
+                .collect()
+            refresh()
+        }
     }
 
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
             _errorMessage.value = null
+            Log.d("HomeViewModel", "refresh started")
             val result = repository.refreshAllFeeds()
+            Log.d("HomeViewModel", "refresh done: success=${result.successCount}, error=${result.errorCount}")
             if (result.errorCount > 0 && result.successCount == 0) {
                 _errorMessage.value = "フィードの読み込みに失敗しました"
             }

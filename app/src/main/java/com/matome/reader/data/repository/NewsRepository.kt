@@ -54,10 +54,11 @@ class NewsRepository @Inject constructor(
             result.onSuccess { articles ->
                 if (articles.isNotEmpty()) {
                     articleDao.insertArticles(articles)
-                    feedDao.updateLastFetched(feed.id, System.currentTimeMillis())
-                    successCount++
                 }
-            }.onFailure {
+                feedDao.updateLastFetched(feed.id, System.currentTimeMillis())
+                successCount++
+            }.onFailure { e ->
+                android.util.Log.e("NewsRepository", "Failed to fetch ${feed.url}", e)
                 errorCount++
             }
         }
