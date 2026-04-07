@@ -4,7 +4,11 @@ import com.matome.reader.data.local.ArticleDao
 import com.matome.reader.data.local.FeedDao
 import com.matome.reader.data.model.Article
 import com.matome.reader.data.model.Feed
+import com.matome.reader.data.remote.OgpFetcher
 import com.matome.reader.data.remote.RssFetcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -16,7 +20,8 @@ import javax.inject.Singleton
 class NewsRepository @Inject constructor(
     private val feedDao: FeedDao,
     private val articleDao: ArticleDao,
-    private val rssFetcher: RssFetcher
+    private val rssFetcher: RssFetcher,
+    private val ogpFetcher: OgpFetcher
 ) {
     // Feeds
     fun getAllFeeds(): Flow<List<Feed>> = feedDao.getAllFeeds()
@@ -53,7 +58,24 @@ class NewsRepository @Inject constructor(
             val result = rssFetcher.fetchFeed(feed)
             result.onSuccess { articles ->
                 if (articles.isNotEmpty()) {
-                    articleDao.insertArticles(articles)
+                    // RSS に imageUrl がない記事は OGP で並列取得（最大5件まで）
+                    val enriched = coroutineScope {
+                        articles.map { article ->
+                            async {
+                                if (article.imageUrl == null) {
+                                    val ogImage = ogpFetcher.fetchOgImage(article.link)
+                                    article.copy(imageUrl = ogImage)
+                                } else article
+                            }
+                        }.awaitAll()
+                    }
+                    articleDao.insertArticles(enriched)
+                    // 既存レコードで imageUrl が未設定のものを補完
+                    enriched.forEach { article ->
+                        if (article.imageUrl != null) {
+                            articleDao.updateImageUrlIfNull(article.link, article.imageUrl)
+                        }
+                    }
                 }
                 feedDao.updateLastFetched(feed.id, System.currentTimeMillis())
                 successCount++

@@ -22,6 +22,10 @@ interface ArticleDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertArticles(articles: List<Article>)
 
+    // 既存記事の imageUrl が null の場合だけ更新（既読・ブックマーク状態は保持）
+    @Query("UPDATE articles SET imageUrl = :imageUrl WHERE link = :link AND imageUrl IS NULL")
+    suspend fun updateImageUrlIfNull(link: String, imageUrl: String)
+
     @Update
     suspend fun updateArticle(article: Article)
 
