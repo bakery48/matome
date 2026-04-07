@@ -89,41 +89,40 @@ class RssParser {
         var eventType = parser.next()
         while (!(eventType == XmlPullParser.END_TAG && parser.name.lowercase() == "item")) {
             if (eventType == XmlPullParser.START_TAG) {
+                val localName = parser.name.substringAfterLast(':').lowercase()
                 val namespace = parser.namespace ?: ""
+                val isMediaNs = namespace.contains("media") || namespace.contains("mrss") ||
+                        parser.name.startsWith("media:")
                 when {
-                    parser.name.lowercase() == "title" -> title = parser.nextText().trim()
-                    parser.name.lowercase() == "link" -> {
+                    localName == "title" && !isMediaNs ->
+                        title = parser.nextText().trim()
+                    localName == "link" && !isMediaNs -> {
                         val text = parser.nextText().trim()
                         if (text.isNotBlank()) link = text
                     }
-                    parser.name.lowercase() == "description" -> {
+                    localName == "description" && !isMediaNs -> {
                         val text = parser.nextText().trim()
                         description = extractTextFromHtml(text)
-                        if (imageUrl == null) {
-                            imageUrl = extractImageFromHtml(text)
-                        }
+                        if (imageUrl == null) imageUrl = extractImageFromHtml(text)
                     }
-                    parser.name.lowercase() == "pubdate" -> {
+                    localName == "pubdate" || localName == "date" ->
                         pubDate = parseDate(parser.nextText().trim())
-                    }
-                    parser.name.lowercase() == "dc:date" -> {
-                        pubDate = parseDate(parser.nextText().trim())
-                    }
-                    parser.name.lowercase() == "enclosure" -> {
+                    localName == "enclosure" -> {
+                        // enclosureは自己閉じタグなのでnextText()不要
                         val type = parser.getAttributeValue(null, "type") ?: ""
-                        if (type.startsWith("image/")) {
+                        if (type.startsWith("image/") && imageUrl == null) {
                             imageUrl = parser.getAttributeValue(null, "url")
                         }
-                        parser.nextText()
+                        skipElement(parser)
                     }
-                    // media:thumbnail or media:content
-                    namespace.contains("media") && (parser.name.contains("thumbnail") || parser.name.contains("content")) -> {
+                    // media:thumbnail / media:content
+                    isMediaNs && (localName == "thumbnail" || localName == "content") -> {
                         if (imageUrl == null) {
                             imageUrl = parser.getAttributeValue(null, "url")
                         }
-                        try { parser.nextText() } catch (_: Exception) {}
+                        skipElement(parser)
                     }
-                    else -> try { parser.nextText() } catch (_: Exception) {}
+                    else -> skipElement(parser)
                 }
             }
             eventType = parser.next()
@@ -164,29 +163,39 @@ class RssParser {
         var eventType = parser.next()
         while (!(eventType == XmlPullParser.END_TAG && parser.name.lowercase() == "entry")) {
             if (eventType == XmlPullParser.START_TAG) {
-                when (parser.name.lowercase()) {
-                    "title" -> title = parser.nextText().trim()
-                    "link" -> {
+                val localName = parser.name.substringAfterLast(':').lowercase()
+                val namespace = parser.namespace ?: ""
+                val isMediaNs = namespace.contains("media") || namespace.contains("mrss") ||
+                        parser.name.startsWith("media:")
+                when {
+                    localName == "title" && !isMediaNs ->
+                        title = parser.nextText().trim()
+                    localName == "link" -> {
                         val rel = parser.getAttributeValue(null, "rel") ?: "alternate"
                         val href = parser.getAttributeValue(null, "href") ?: ""
                         if (rel == "alternate" && href.isNotBlank()) link = href
-                        try { parser.nextText() } catch (_: Exception) {}
+                        skipElement(parser)
                     }
-                    "summary", "content" -> {
+                    localName == "summary" || localName == "content" -> {
                         val text = parser.nextText().trim()
                         if (description == null) {
                             description = extractTextFromHtml(text)
-                            imageUrl = extractImageFromHtml(text)
+                            if (imageUrl == null) imageUrl = extractImageFromHtml(text)
                         }
                     }
-                    "published", "updated" -> {
-                        if (publishedAt == 0L || parser.name.lowercase() == "published") {
-                            publishedAt = parseDate(parser.nextText().trim())
-                        } else {
-                            parser.nextText()
-                        }
+                    localName == "published" -> {
+                        publishedAt = parseDate(parser.nextText().trim())
                     }
-                    else -> try { parser.nextText() } catch (_: Exception) {}
+                    localName == "updated" && publishedAt == 0L -> {
+                        publishedAt = parseDate(parser.nextText().trim())
+                    }
+                    isMediaNs && (localName == "thumbnail" || localName == "content") -> {
+                        if (imageUrl == null) {
+                            imageUrl = parser.getAttributeValue(null, "url")
+                        }
+                        skipElement(parser)
+                    }
+                    else -> skipElement(parser)
                 }
             }
             eventType = parser.next()
@@ -202,6 +211,21 @@ class RssParser {
             imageUrl = imageUrl,
             publishedAt = publishedAt
         )
+    }
+
+    // 自己閉じタグ・ネストしたタグを安全にスキップする
+    private fun skipElement(parser: XmlPullParser) {
+        try {
+            var depth = 1
+            while (depth > 0) {
+                val event = parser.next()
+                when (event) {
+                    XmlPullParser.START_TAG -> depth++
+                    XmlPullParser.END_TAG -> depth--
+                    XmlPullParser.END_DOCUMENT -> return
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     private fun parseDate(dateStr: String): Long {
