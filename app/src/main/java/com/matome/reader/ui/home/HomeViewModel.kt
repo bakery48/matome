@@ -28,6 +28,11 @@ class HomeViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     private val _errorMessage = MutableStateFlow<String?>(null)
 
+    // combine は5つまでしか型付きラムダをサポートしないため、先に2つをまとめる
+    private val _refreshState = combine(_isRefreshing, _errorMessage) { refreshing, error ->
+        refreshing to error
+    }
+
     val uiState: StateFlow<HomeUiState> = combine(
         _selectedFeedId.flatMapLatest { feedId ->
             if (feedId == null) repository.getAllArticles()
@@ -35,16 +40,15 @@ class HomeViewModel @Inject constructor(
         },
         repository.getAllFeeds(),
         _selectedFeedId,
-        _isRefreshing,
-        _errorMessage,
+        _refreshState,
         repository.getUnreadCount()
-    ) { articles, feeds, selectedFeedId, isRefreshing, errorMessage, unreadCount ->
+    ) { articles, feeds, selectedFeedId, refreshState, unreadCount ->
         HomeUiState(
             articles = articles,
             feeds = feeds,
             selectedFeedId = selectedFeedId,
-            isRefreshing = isRefreshing,
-            errorMessage = errorMessage,
+            isRefreshing = refreshState.first,
+            errorMessage = refreshState.second,
             unreadCount = unreadCount
         )
     }.stateIn(
