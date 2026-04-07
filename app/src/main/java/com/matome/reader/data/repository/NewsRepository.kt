@@ -5,8 +5,10 @@ import com.matome.reader.data.local.FeedDao
 import com.matome.reader.data.model.Article
 import com.matome.reader.data.model.Feed
 import com.matome.reader.data.remote.RssFetcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,7 +44,7 @@ class NewsRepository @Inject constructor(
     }
 
     // Refresh
-    suspend fun refreshAllFeeds(): RefreshResult {
+    suspend fun refreshAllFeeds(): RefreshResult = withContext(Dispatchers.IO) {
         val feeds = feedDao.getEnabledFeeds()
         var successCount = 0
         var errorCount = 0
@@ -75,7 +77,7 @@ class NewsRepository @Inject constructor(
         }
     }
 
-    suspend fun clearCache() {
+    suspend fun clearCache() = withContext(Dispatchers.IO) {
         val feeds = feedDao.getAllFeeds().first()
         feeds.forEach { feed ->
             articleDao.deleteNonBookmarkedByFeed(feed.id)
