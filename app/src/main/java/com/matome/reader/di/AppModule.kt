@@ -43,7 +43,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "matome_db"
-        ).build()
+        ).addMigrations(com.matome.reader.data.local.MIGRATION_1_2).build()
     }
 
     @Provides

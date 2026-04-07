@@ -178,6 +178,14 @@ private fun FeedListItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
+                feed.lastError?.let { error ->
+                    Text(
+                        text = "⚠ $error",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 1
+                    )
+                }
             }
             Switch(
                 checked = feed.isEnabled,

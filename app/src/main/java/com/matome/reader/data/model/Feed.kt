@@ -11,5 +11,6 @@ data class Feed(
     val url: String,
     val isEnabled: Boolean = true,
     val lastFetchedAt: Long = 0L,
-    val faviconUrl: String? = null
+    val faviconUrl: String? = null,
+    val lastError: String? = null
 )

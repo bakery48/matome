@@ -81,6 +81,7 @@ class NewsRepository @Inject constructor(
                 successCount++
             }.onFailure { e ->
                 android.util.Log.e("NewsRepository", "Failed to fetch ${feed.url}", e)
+                feedDao.updateLastError(feed.id, e.message ?: "不明なエラー")
                 errorCount++
             }
         }

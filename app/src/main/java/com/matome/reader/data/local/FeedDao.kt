@@ -25,6 +25,9 @@ interface FeedDao {
     @Delete
     suspend fun deleteFeed(feed: Feed)
 
-    @Query("UPDATE feeds SET lastFetchedAt = :timestamp WHERE id = :id")
+    @Query("UPDATE feeds SET lastFetchedAt = :timestamp, lastError = NULL WHERE id = :id")
     suspend fun updateLastFetched(id: Long, timestamp: Long)
+
+    @Query("UPDATE feeds SET lastError = :error WHERE id = :id")
+    suspend fun updateLastError(id: Long, error: String)
 }

@@ -18,8 +18,9 @@ class RssFetcher @Inject constructor(
         try {
             val request = Request.Builder()
                 .url(feed.url)
-                .header("User-Agent", "MatomeReader/1.0 (Android)")
-                .header("Accept", "application/rss+xml, application/atom+xml, application/xml, text/xml")
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36")
+                .header("Accept", "application/rss+xml, application/atom+xml, application/xml, text/xml, */*")
+                .header("Accept-Language", "ja,en;q=0.9")
                 .build()
 
             val response = client.newCall(request).execute()
