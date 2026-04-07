@@ -46,6 +46,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun toggleBaseballRelated(feed: Feed) {
+        viewModelScope.launch {
+            repository.setBaseballRelated(feed.id, !feed.isBaseballRelated)
+        }
+    }
+
     fun deleteFeed(feed: Feed) {
         viewModelScope.launch {
             repository.deleteFeed(feed)

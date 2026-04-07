@@ -32,6 +32,9 @@ class NewsRepository @Inject constructor(
 
     suspend fun deleteFeed(feed: Feed) = feedDao.deleteFeed(feed)
 
+    suspend fun setBaseballRelated(feedId: Long, isBaseballRelated: Boolean) =
+        feedDao.setBaseballRelated(feedId, isBaseballRelated)
+
     // Articles
     fun getAllArticles(): Flow<List<Article>> = articleDao.getAllArticles()
 

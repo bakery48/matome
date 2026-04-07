@@ -12,5 +12,6 @@ data class Feed(
     val isEnabled: Boolean = true,
     val lastFetchedAt: Long = 0L,
     val faviconUrl: String? = null,
-    val lastError: String? = null
+    val lastError: String? = null,
+    val isBaseballRelated: Boolean = false
 )

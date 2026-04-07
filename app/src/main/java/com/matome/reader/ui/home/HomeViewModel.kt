@@ -1,5 +1,6 @@
 package com.matome.reader.ui.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matome.reader.data.model.Article
@@ -9,7 +10,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import android.util.Log
+
+enum class BaseballFilter { ALL, BASEBALL_ONLY, HIDE_BASEBALL }
 
 data class HomeUiState(
     val articles: List<Article> = emptyList(),
@@ -17,7 +19,9 @@ data class HomeUiState(
     val selectedFeedId: Long? = null,
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
-    val unreadCount: Int = 0
+    val unreadCount: Int = 0,
+    val baseballFilter: BaseballFilter = BaseballFilter.ALL,
+    val hasBaseballFeeds: Boolean = false
 )
 
 @HiltViewModel
@@ -28,8 +32,8 @@ class HomeViewModel @Inject constructor(
     private val _selectedFeedId = MutableStateFlow<Long?>(null)
     private val _isRefreshing = MutableStateFlow(false)
     private val _errorMessage = MutableStateFlow<String?>(null)
+    private val _baseballFilter = MutableStateFlow(BaseballFilter.ALL)
 
-    // combine は5つまでしか型付きラムダをサポートしないため、先に2つをまとめる
     private val _refreshState = combine(_isRefreshing, _errorMessage) { refreshing, error ->
         refreshing to error
     }
@@ -40,17 +44,28 @@ class HomeViewModel @Inject constructor(
             else repository.getArticlesByFeed(feedId)
         },
         repository.getAllFeeds(),
-        _selectedFeedId,
+        combine(_selectedFeedId, _baseballFilter) { feedId, filter -> feedId to filter },
         _refreshState,
         repository.getUnreadCount()
-    ) { articles, feeds, selectedFeedId, refreshState, unreadCount ->
+    ) { articles, feeds, (selectedFeedId, baseballFilter), refreshState, unreadCount ->
+        val baseballFeedIds = feeds.filter { it.isBaseballRelated }.map { it.id }.toSet()
+        val hasBaseballFeeds = baseballFeedIds.isNotEmpty()
+
+        val filtered = when (baseballFilter) {
+            BaseballFilter.ALL -> articles
+            BaseballFilter.BASEBALL_ONLY -> articles.filter { it.feedId in baseballFeedIds }
+            BaseballFilter.HIDE_BASEBALL -> articles.filter { it.feedId !in baseballFeedIds }
+        }
+
         HomeUiState(
-            articles = articles,
+            articles = filtered,
             feeds = feeds,
             selectedFeedId = selectedFeedId,
             isRefreshing = refreshState.first,
             errorMessage = refreshState.second,
-            unreadCount = unreadCount
+            unreadCount = unreadCount,
+            baseballFilter = baseballFilter,
+            hasBaseballFeeds = hasBaseballFeeds
         )
     }.stateIn(
         scope = viewModelScope,
@@ -59,7 +74,6 @@ class HomeViewModel @Inject constructor(
     )
 
     init {
-        // DatabaseInitializerがフィードを挿入するのを待ってからrefresh
         viewModelScope.launch {
             repository.getAllFeeds()
                 .filter { it.isNotEmpty() }
@@ -85,6 +99,14 @@ class HomeViewModel @Inject constructor(
 
     fun selectFeed(feedId: Long?) {
         _selectedFeedId.value = feedId
+    }
+
+    fun cycleBaseballFilter() {
+        _baseballFilter.value = when (_baseballFilter.value) {
+            BaseballFilter.ALL -> BaseballFilter.BASEBALL_ONLY
+            BaseballFilter.BASEBALL_ONLY -> BaseballFilter.HIDE_BASEBALL
+            BaseballFilter.HIDE_BASEBALL -> BaseballFilter.ALL
+        }
     }
 
     fun markAsRead(articleId: Long) {

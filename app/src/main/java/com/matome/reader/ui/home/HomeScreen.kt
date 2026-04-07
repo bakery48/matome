@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.matome.reader.R
+import com.matome.reader.ui.home.BaseballFilter
 import com.matome.reader.data.model.Article
 import com.matome.reader.data.model.Feed
 import java.text.SimpleDateFormat
@@ -56,6 +57,21 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    // 野球フィルターボタン（野球フィードが1件以上あるときだけ表示）
+                    if (uiState.hasBaseballFeeds) {
+                        IconButton(onClick = { viewModel.cycleBaseballFilter() }) {
+                            val (emoji, alpha) = when (uiState.baseballFilter) {
+                                BaseballFilter.ALL -> "⚾" to 0.4f
+                                BaseballFilter.BASEBALL_ONLY -> "⚾" to 1.0f
+                                BaseballFilter.HIDE_BASEBALL -> "🚫⚾" to 1.0f
+                            }
+                            Text(
+                                text = emoji,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+                            )
+                        }
+                    }
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,

@@ -30,4 +30,7 @@ interface FeedDao {
 
     @Query("UPDATE feeds SET lastError = :error WHERE id = :id")
     suspend fun updateLastError(id: Long, error: String)
+
+    @Query("UPDATE feeds SET isBaseballRelated = :isBaseballRelated WHERE id = :id")
+    suspend fun setBaseballRelated(id: Long, isBaseballRelated: Boolean)
 }

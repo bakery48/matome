@@ -82,6 +82,7 @@ fun SettingsScreen(
                     FeedListItem(
                         feed = feed,
                         onToggle = { viewModel.toggleFeed(feed) },
+                        onToggleBaseball = { viewModel.toggleBaseballRelated(feed) },
                         onDelete = { feedToDelete = feed }
                     )
                 }
@@ -155,6 +156,7 @@ fun SettingsScreen(
 private fun FeedListItem(
     feed: Feed,
     onToggle: () -> Unit,
+    onToggleBaseball: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -168,10 +170,21 @@ private fun FeedListItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = feed.name,
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = feed.name,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (feed.isBaseballRelated) {
+                        Text(
+                            text = "⚾",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
                 Text(
                     text = feed.url,
                     style = MaterialTheme.typography.bodySmall,
@@ -186,6 +199,17 @@ private fun FeedListItem(
                         maxLines = 1
                     )
                 }
+            }
+            // 野球関連トグル
+            IconButton(onClick = onToggleBaseball) {
+                Text(
+                    text = "⚾",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (feed.isBaseballRelated)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                )
             }
             Switch(
                 checked = feed.isEnabled,
