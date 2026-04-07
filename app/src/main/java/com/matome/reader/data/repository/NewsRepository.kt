@@ -63,7 +63,7 @@ class NewsRepository @Inject constructor(
         }
 
         articleDao.pruneOldArticles()
-        return RefreshResult(successCount, errorCount)
+        RefreshResult(successCount, errorCount)
     }
 
     suspend fun refreshFeed(feed: Feed): Result<Int> {
